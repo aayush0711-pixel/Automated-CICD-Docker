@@ -2,11 +2,16 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER = 'C:\\Users\\aayus\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+        IMAGE = 'jenkins-docker-app'
+        CONTAINER = 'jenkins-docker-app'
+    }
+
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main',
-                    url: 'https://github.com/aayush0711-pixel/Automated-CICD-Docker.git'
+                echo 'Source code checked out from GitHub.'
             }
         }
 
@@ -15,32 +20,32 @@ pipeline {
                 bat 'if not exist app.py exit /b 1'
                 bat 'if not exist Dockerfile exit /b 1'
                 bat 'if not exist requirements.txt exit /b 1'
-                echo 'All project files are present.'
+                echo 'All required files are present.'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                bat 'docker build -t jenkins-docker-app .'
+                bat '"%DOCKER%" build -t %IMAGE% .'
             }
         }
 
         stage('Test Application') {
             steps {
-                bat 'docker run --rm jenkins-docker-app python -c "import app; print(\'Application test passed\')"'
+                bat '"%DOCKER%" run --rm %IMAGE% python -c "import app; print(\'Application test passed\')"'
             }
         }
 
         stage('Deploy') {
             steps {
-                bat 'docker rm -f jenkins-docker-app || echo No existing container to remove'
-                bat 'docker run -d --name jenkins-docker-app -p 5000:5000 jenkins-docker-app'
+                bat '"%DOCKER%" rm -f %CONTAINER% || exit /b 0'
+                bat '"%DOCKER%" run -d --name %CONTAINER% -p 5000:5000 %IMAGE%'
             }
         }
 
         stage('Verify Deployment') {
             steps {
-                bat 'powershell -NoProfile -Command "Start-Sleep -Seconds 3; Invoke-RestMethod http://localhost:5000/health"'
+                bat 'powershell -NoProfile -Command "Start-Sleep -Seconds 5; Invoke-RestMethod http://localhost:5000/health"'
             }
         }
     }
